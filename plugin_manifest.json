@@ -1,0 +1,27 @@
+{
+  "app_key": "study_support",
+  "display_name": "学習支援",
+  "version": "0.1.0",
+  "requested_scopes": [
+    {
+      "scope": "schedule_items:read",
+      "purpose": "他アプリの予定と重複しないよう復習予定を確認するため"
+    },
+    {
+      "scope": "schedule_items:write",
+      "purpose": "次回復習日を共通の予定表に登録するため"
+    },
+    {
+      "scope": "memory:write:study.*",
+      "purpose": "苦手分野の推測結果を他アプリと共有するため"
+    },
+    {
+      "scope": "memory:read:study.*",
+      "purpose": "過去の苦手分野の傾向を学習ログ記録時の参考にするため"
+    },
+    {
+      "scope": "documents:write",
+      "purpose": "教材ファイルの所在をドキュメントセンターに登録するため"
+    }
+  ]
+}

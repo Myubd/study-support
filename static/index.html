@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>学習ログ — Study Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── デザイントークン ─────────────────────────────────────────
+     コンセプト: 「学習ノート」。gatewayの統合コンソール(パスポート/台帳)と
+     同じ紙・インクの質感を踏襲しつつ、こちらは1冊のノートに毎日書き込んで
+     いく感覚にする。理解度の低い記録は赤ペンの下線のように強調する。
+  ------------------------------------------------------------- */
+  :root{
+    --paper:      #F6F3EC;
+    --paper-line: #DDD6C6;
+    --ink:        #1B2430;
+    --ink-soft:   #5B6472;
+    --pencil:     #2F4858;   /* 記録済みの通常項目 */
+    --red-pen:    #A5362B;   /* 理解度が低い項目の強調 */
+    --red-pen-soft:#A5362B18;
+    --good:       #4B5D45;   /* 理解度が高い項目 */
+
+    --display: "Source Serif 4", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --body: "Inter", -apple-system, sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    line-height: 1.55;
+    background-image:
+      repeating-linear-gradient(180deg, transparent, transparent 27px, var(--paper-line) 28px);
+    background-attachment: local;
+  }
+  .wrap{ max-width: 760px; margin: 0 auto; padding: 40px 24px 96px; }
+
+  header.masthead{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 28px;
+  }
+  header.masthead h1{ font-family: var(--display); font-weight:700; font-size: 28px; margin:0; }
+  header.masthead .sub{ font-family: var(--mono); font-size:12px; color: var(--ink-soft); }
+  #profile-badge{
+    font-family: var(--mono); font-size: 12px; color: var(--ink-soft);
+    border: 1px solid var(--paper-line); border-radius: 999px; padding: 4px 12px;
+  }
+
+  .stats{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 32px; }
+  .stat{
+    border: 1px solid var(--paper-line); border-radius: 3px; padding: 14px;
+    background: rgba(255,255,255,0.4);
+  }
+  .stat .label{ font-family: var(--mono); font-size: 11px; color: var(--ink-soft); text-transform: uppercase; }
+  .stat .value{ font-family: var(--display); font-size: 22px; font-weight:700; margin-top:4px; }
+  .stat.weak .value{ color: var(--red-pen); }
+
+  section > h2{
+    font-family: var(--display); font-weight:600; font-size: 19px; margin: 0 0 14px;
+  }
+
+  .log-form{
+    border: 1px solid var(--paper-line); background: rgba(255,255,255,0.4);
+    border-radius: 3px; padding: 18px; margin-bottom: 40px;
+    display:grid; grid-template-columns: 2fr 1fr; gap: 12px;
+  }
+  .log-form input, .log-form textarea{
+    font-family: var(--body); font-size: 14px; padding: 9px 10px;
+    border:1px solid var(--paper-line); border-radius:2px; background: var(--paper);
+    width: 100%;
+  }
+  .log-form .full{ grid-column: 1 / -1; }
+  .log-form label{ font-family: var(--mono); font-size: 11px; color: var(--ink-soft); display:block; margin-bottom: 4px; }
+
+  .understanding-select{ display:flex; gap: 6px; }
+  .understanding-select button{
+    flex:1; padding: 8px 0; border: 1px solid var(--paper-line); background: var(--paper);
+    font-family: var(--mono); font-size: 13px; cursor: pointer; border-radius: 2px;
+    color: var(--ink-soft);
+  }
+  .understanding-select button.selected{
+    border-color: var(--ink); color: var(--ink); background: rgba(0,0,0,0.04); font-weight: 600;
+  }
+
+  button.submit{
+    font-family: var(--body); font-weight:600; font-size: 14px; cursor:pointer;
+    border-radius: 2px; padding: 10px 16px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--paper); grid-column: 1 / -1;
+  }
+  button.submit:hover{ opacity: .85; }
+  button.submit:disabled{ opacity: .5; cursor: default; }
+
+  .status-line{ font-family: var(--mono); font-size:12px; color: var(--ink-soft); grid-column: 1/-1; min-height: 1.2em; }
+  .status-line.error{ color: var(--red-pen); }
+
+  .log-entry{
+    border-left: 3px solid var(--pencil); padding: 10px 14px; margin-bottom: 10px;
+    background: rgba(255,255,255,0.35);
+  }
+  .log-entry.weak{ border-left-color: var(--red-pen); background: var(--red-pen-soft); }
+  .log-entry .row1{ display:flex; justify-content: space-between; align-items:baseline; gap: 10px; }
+  .log-entry .subject{ font-family: var(--display); font-weight:600; font-size: 16px; flex: 1; }
+  .log-entry .meta{ font-family: var(--mono); font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .log-entry .note{ font-size: 13.5px; color: var(--ink-soft); margin-top: 4px; }
+  .log-entry .review{ font-family: var(--mono); font-size: 11px; margin-top: 6px; color: var(--pencil); }
+  .log-entry .row2{ display:flex; justify-content: space-between; align-items:baseline; margin-top: 6px; }
+  button.delete-btn{
+    font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+    background: transparent; border: 1px solid var(--paper-line); border-radius: 2px;
+    padding: 3px 9px; cursor: pointer;
+  }
+  button.delete-btn:hover{ border-color: var(--red-pen); color: var(--red-pen); }
+
+  .empty{ color: var(--ink-soft); font-style: italic; font-size: 14px; }
+
+  footer{ margin-top: 50px; padding-top: 16px; border-top: 1px solid var(--paper-line);
+          font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>学習ログ</h1>
+      <div class="sub">Study Support — 理解度・復習予定を1件ずつ記録する</div>
+    </div>
+    <div id="profile-badge">profile #—</div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">記録件数</div>
+      <div class="value" id="stat-count">—</div>
+    </div>
+    <div class="stat">
+      <div class="label">総学習時間</div>
+      <div class="value" id="stat-minutes">—</div>
+    </div>
+    <div class="stat weak">
+      <div class="label">苦手分野の疑いあり</div>
+      <div class="value" id="stat-weak">—</div>
+    </div>
+  </div>
+
+  <section>
+    <h2>今日の記録を追加</h2>
+    <div class="log-form">
+      <div>
+        <label>科目・単元</label>
+        <input id="f-subject" placeholder="例: 英語 / 二次関数 / 民法" />
+      </div>
+      <div>
+        <label>学習時間(分)</label>
+        <input id="f-minutes" type="number" min="1" value="30" />
+      </div>
+      <div class="full">
+        <label>理解度(1: できていない 〜 5: 完全に理解)</label>
+        <div class="understanding-select" id="understanding-select">
+          <button data-v="1">1</button>
+          <button data-v="2">2</button>
+          <button data-v="3" class="selected">3</button>
+          <button data-v="4">4</button>
+          <button data-v="5">5</button>
+        </div>
+      </div>
+      <div class="full">
+        <label>メモ(任意)</label>
+        <textarea id="f-note" rows="2" placeholder="つまずいた点、気づいたことなど"></textarea>
+      </div>
+      <div>
+        <label>次回復習日(任意)</label>
+        <input id="f-review" type="date" />
+      </div>
+      <div></div>
+      <button class="submit" id="submit-btn">記録する</button>
+      <div class="status-line" id="form-status"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>これまでの記録</h2>
+    <div id="log-list"></div>
+  </section>
+
+  <footer>Study Support · データは端末内のcore.db / study.dbにのみ保存されます</footer>
+</div>
+
+<script>
+let selectedUnderstanding = 3;
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+document.querySelectorAll("#understanding-select button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#understanding-select button").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedUnderstanding = parseInt(btn.dataset.v, 10);
+  });
+});
+
+async function loadProfile() {
+  try {
+    const r = await api("/health");
+    document.getElementById("profile-badge").textContent = `profile #${r.profile_id}`;
+  } catch (e) { /* 補助表示のため失敗しても無視 */ }
+}
+
+function computeWeakSubjects(logs) {
+  const counts = {};
+  for (const log of logs) {
+    if (log.understanding <= 2) counts[log.subject] = (counts[log.subject] || 0) + 1;
+  }
+  return new Set(Object.entries(counts).filter(([, c]) => c >= 2).map(([s]) => s));
+}
+
+function reviewStatusHtml(log) {
+  if (!log.review_date) return "";
+  if (log.schedule_synced === 1) {
+    return `📖 次回復習予定: ${log.review_date}(共通予定表にも登録済み)`;
+  }
+  if (log.schedule_synced === 0) {
+    return `📖 次回復習予定: ${log.review_date}<span style="color:var(--red-pen)">(⚠️ 共通予定表への登録は権限未許可のため失敗しています。統合コンソールで schedule_items:write を許可してください)</span>`;
+  }
+  return `📖 次回復習予定: ${log.review_date}`;
+}
+
+async function loadLogs() {
+  const logs = await api("/logs");
+  const weakSubjects = computeWeakSubjects(logs);
+
+  document.getElementById("stat-count").textContent = logs.length;
+  document.getElementById("stat-minutes").textContent =
+    logs.reduce((sum, l) => sum + (l.minutes || 0), 0) + "分";
+  document.getElementById("stat-weak").textContent = weakSubjects.size;
+
+  const list = document.getElementById("log-list");
+  if (logs.length === 0) {
+    list.innerHTML = `<div class="empty">まだ記録がありません。上のフォームから最初の1件を追加してください。</div>`;
+    return;
+  }
+
+  list.innerHTML = logs.map(log => {
+    const isWeak = weakSubjects.has(log.subject) && log.understanding <= 2;
+    return `
+      <div class="log-entry ${isWeak ? "weak" : ""}">
+        <div class="row1">
+          <span class="subject">${log.subject}</span>
+          <span class="meta">${log.minutes}分 · 理解度 ${log.understanding}/5 · ${log.created_at}</span>
+        </div>
+        ${log.note ? `<div class="note">${log.note}</div>` : ""}
+        <div class="row2">
+          <span class="review">${reviewStatusHtml(log)}</span>
+          <button class="delete-btn" data-id="${log.id}">削除</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  list.querySelectorAll(".delete-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("この記録を削除しますか？(共通予定表に登録した復習予定があれば、それもキャンセルされます)")) return;
+      btn.disabled = true;
+      try {
+        await api(`/logs/${btn.dataset.id}`, { method: "DELETE" });
+        await loadLogs();
+      } catch (e) {
+        alert("削除に失敗しました: " + e.message);
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+async function submitLog() {
+  const status = document.getElementById("form-status");
+  const btn = document.getElementById("submit-btn");
+  const subject = document.getElementById("f-subject").value.trim();
+  const minutes = parseInt(document.getElementById("f-minutes").value, 10);
+  const note = document.getElementById("f-note").value.trim();
+  const reviewDate = document.getElementById("f-review").value;
+
+  if (!subject) { status.textContent = "科目・単元を入力してください"; status.className = "status-line error"; return; }
+  if (!minutes || minutes <= 0) { status.textContent = "学習時間を正しく入力してください"; status.className = "status-line error"; return; }
+
+  btn.disabled = true; status.textContent = "記録中…"; status.className = "status-line";
+  try {
+    await api("/logs", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject, minutes, understanding: selectedUnderstanding,
+        note: note || null, review_date: reviewDate || null,
+      }),
+    });
+    document.getElementById("f-subject").value = "";
+    document.getElementById("f-note").value = "";
+    document.getElementById("f-review").value = "";
+    status.textContent = "記録しました";
+    await loadLogs();
+  } catch (e) {
+    status.textContent = "エラー: " + e.message; status.className = "status-line error";
+  }
+  btn.disabled = false;
+}
+
+document.getElementById("submit-btn").addEventListener("click", submitLog);
+
+loadProfile();
+loadLogs();
+</script>
+</body>
+</html>
