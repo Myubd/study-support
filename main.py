@@ -33,6 +33,8 @@ from local_ai_core.permissions import PermissionGate, PermissionDenied
 from local_ai_core.memory import MemoryStore
 from local_ai_core.schedule import ScheduleStore
 
+from service_auth import service_auth_middleware, get_auth_token
+
 APP_KEY = "study_support"
 _PLUGIN_MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "plugin_manifest.json")
 _STUDY_DB_PATH = os.environ.get("STUDY_DB_PATH", "/app/data/study.db")
@@ -84,6 +86,9 @@ def _study_db():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _profile_id, _gate
+    # このサービスは個別ポート(8100)でホストへ直接公開されうるため、
+    # gatewayと同様にトークン未設定のまま起動しないことを最初に確認する。
+    get_auth_token()
     _init_study_db()
     _profile_id = bootstrap_app(_PLUGIN_MANIFEST_PATH, default_profile_display_name="デフォルトプロフィール")
     _gate = PermissionGate(get_core_db_path())
@@ -92,6 +97,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Study Support backend", lifespan=lifespan)
+# 登録順序が重要(gatewayのmain.pyと同じ理由): CORSを外側(先)、認証を内側(後)にする。
+app.middleware("http")(service_auth_middleware)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
