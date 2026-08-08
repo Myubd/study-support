@@ -16,13 +16,16 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-os.environ["GATEWAY_AUTH_TOKEN"] = "test-token-12345"
-
 from service_auth import service_auth_middleware, SESSION_COOKIE_NAME  # noqa: E402
 
 
 @pytest.fixture()
-def client():
+def client(monkeypatch):
+    # モジュールレベルでos.environを書き換えると、同じプロセス内で他の
+    # テストファイルが先に(または後に)収集された時にGATEWAY_AUTH_TOKENの
+    # 値が衝突する(実際にarchlife-fastapiの既存テスト群と衝突する形で
+    # 発覚した)。monkeypatchならテスト関数ごとに自動で元に戻るため安全。
+    monkeypatch.setenv("GATEWAY_AUTH_TOKEN", "test-token-12345")
     app = FastAPI()
     app.middleware("http")(service_auth_middleware)
 

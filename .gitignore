@@ -1,1 +1,5 @@
 ﻿data/
+
+# PyInstallerのビルド成果物(コミットしない)
+build/
+dist/
