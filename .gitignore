@@ -3,3 +3,8 @@
 # PyInstallerのビルド成果物(コミットしない)
 build/
 dist/
+
+# ---- Python ----
+# .pycファイル・コンパイルキャッシュはコミットしない
+__pycache__/
+*.py[cod]
